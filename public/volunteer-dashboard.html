@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    // Role-based Access Control
+    const token = localStorage.getItem('x-session-token');
+    if (!token) window.location.href = '/auth.html';
+    const role = localStorage.getItem('manosetu-role');
+    if (role !== 'volunteer' && role !== 'admin') window.location.href = '/auth.html';
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Hub — ManoSetu Field Ops</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0eb;
+      --surface: #fdfaf7;
+      --surface-2: #f0ebe4;
+      --border: #e8e0d8;
+      --text-primary: #2c2420;
+      --text-secondary: #7a6e68;
+      --text-muted: #b0a49c;
+
+      --green: #7ec8a0;
+      --green-bg: #edf7f2;
+      --green-text: #2d6e4e;
+
+      --yellow: #f0c97a;
+      --yellow-bg: #fdf6e3;
+      --yellow-text: #7a5a10;
+
+      --red: #f4928a;
+      --red-bg: #fdf0ef;
+      --red-text: #7a2e28;
+
+      --blue: #8ab4e8;
+      --blue-bg: #eef4fc;
+      --blue-text: #2a4e7a;
+
+      --lavender: #b8a8d8;
+      --lavender-bg: #f3f0f9;
+      --lavender-text: #4a3878;
+
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 2px 16px rgba(44, 36, 32, 0.07);
+      --shadow-md: 0 4px 32px rgba(44, 36, 32, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 36px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .nav-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .nav-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 1px;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-pill {
+      padding: 7px 16px;
+      border-radius: 50px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .nav-pill:hover {
+      background: var(--border);
+    }
+
+    .nav-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--lavender), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+    }
+
+    /* LAYOUT */
+    .container {
+      padding: 28px 36px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    /* KPI CARDS */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-icon {
+      font-size: 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 50px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 32px;
+      line-height: 1;
+      margin-bottom: 4px;
+      letter-spacing: -1px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-delta {
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .kpi-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .kpi-green .kpi-value {
+      color: var(--green-text);
+    }
+
+    .kpi-green .kpi-badge {
+      background: var(--green-bg);
+      color: var(--green-text);
+    }
+
+    .kpi-green .kpi-bar {
+      background: var(--green);
+    }
+
+    .kpi-green .kpi-delta {
+      color: var(--green-text);
+    }
+
+    .kpi-red .kpi-value {
+      color: var(--red-text);
+    }
+
+    .kpi-red .kpi-badge {
+      background: var(--red-bg);
+      color: var(--red-text);
+    }
+
+    .kpi-red .kpi-bar {
+      background: var(--red);
+    }
+
+    .kpi-red .kpi-delta {
+      color: var(--red-text);
+    }
+
+    .kpi-yellow .kpi-value {
+      color: var(--yellow-text);
+    }
+
+    .kpi-yellow .kpi-badge {
+      background: var(--yellow-bg);
+      color: var(--yellow-text);
+    }
+
+    .kpi-yellow .kpi-bar {
+      background: var(--yellow);
+    }
+
+    .kpi-yellow .kpi-delta {
+      color: var(--yellow-text);
+    }
+
+    .kpi-blue .kpi-value {
+      color: var(--blue-text);
+    }
+
+    .kpi-blue .kpi-badge {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+    }
+
+    .kpi-blue .kpi-bar {
+      background: var(--blue);
+    }
+
+    .kpi-blue .kpi-delta {
+      color: var(--blue-text);
+    }
+
+    .kpi-lavender .kpi-value {
+      color: var(--lavender-text);
+    }
+
+    .kpi-lavender .kpi-badge {
+      background: var(--lavender-bg);
+      color: var(--lavender-text);
+    }
+
+    .kpi-lavender .kpi-bar {
+      background: var(--lavender);
+    }
+
+    .kpi-lavender .kpi-delta {
+      color: var(--lavender-text);
+    }
+
+    /* MAIN GRID */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* PANELS */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+
+    .panel-action {
+      font-size: 12px;
+      color: var(--blue-text);
+      font-weight: 500;
+      cursor: pointer;
+      padding: 5px 12px;
+      border-radius: 50px;
+      background: var(--blue-bg);
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: opacity 0.15s;
+    }
+
+    .panel-action:hover {
+      opacity: 0.75;
+    }
+
+    /* TREND CHART */
+    .chart-wrap {
+      position: relative;
+      height: 160px;
+    }
+
+    .chart-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* HEATMAP */
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+    }
+
+    .hm-cell {
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+      position: relative;
+    }
+
+    .hm-cell:hover {
+      transform: scale(1.05);
+      opacity: 0.85;
+    }
+
+    .hm-low {
+      background: #b2e4c8;
+    }
+
+    .hm-low-mid {
+      background: #d4eebc;
+    }
+
+    .hm-mid {
+      background: #f5dfa0;
+    }
+
+    .hm-mid-high {
+      background: #f5c4a0;
+    }
+
+    .hm-high {
+      background: #f4a4a0;
+    }
+
+    .heatmap-legend {
+      display: flex;
+      gap: 14px;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .leg-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    /* ALERTS */
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+
+    .alert-item:hover {
+      background: #ebe4dc;
+    }
+
+    .alert-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .alert-dot.red {
+      background: var(--red);
+    }
+
+    .alert-dot.yellow {
+      background: var(--yellow);
+    }
+
+    .alert-dot.blue {
+      background: var(--blue);
+    }
+
+    .alert-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .alert-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .alert-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* REGION INSIGHTS */
+    /* REGION INSIGHTS FULL WIDTH */
+    .region-insights-panel {
+      margin-top: 20px;
+    }
+
+    .region-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    .region-card {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 18px 16px 14px;
+      background: var(--surface-2);
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .region-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .region-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .region-card-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .region-card-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 50px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .region-card-score {
+      font-family: 'DM Serif Display', serif;
+      font-size: 36px;
+      line-height: 1;
+      letter-spacing: -1.5px;
+      margin-bottom: 4px;
+    }
+
+    .region-card-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .region-card-bar-wrap {
+      height: 5px;
+      background: var(--border);
+      border-radius: 50px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .region-card-bar-fill {
+      height: 100%;
+      border-radius: 50px;
+      transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .region-card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .region-card-accent {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+
+    .score-display {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 18px;
+      background: var(--green-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid #c8e8d8;
+      margin-bottom: 14px;
+    }
+
+    .score-ring {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+    }
+
+    .score-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .score-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 19px;
+      color: var(--green-text);
+    }
+
+    .score-info h4 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px;
+      color: var(--green-text);
+    }
+
+    .score-info p {
+      font-size: 12px;
+      color: #5a9e72;
+      margin-top: 3px;
+      line-height: 1.5;
+    }
+
+    /* Standard Language Dropdown Styles for Consistency */
+    .lang-dropdown {
+      position: relative;
+      display: inline-block;
+      font-family: "DM Sans", sans-serif;
+    }
+
+    .lang-drop-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 7px 16px;
+      border-radius: 50px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: 0.15s;
+    }
+
+    .lang-drop-btn:hover {
+      background: var(--border);
+    }
+
+    .lang-drop-btn svg {
+      width: 16px;
+      height: 16px;
+      color: var(--blue-text);
+    }
+
+    .lang-menu {
+      display: none;
+      position: absolute;
+      top: 120%;
+      right: 0;
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      width: 140px;
+      padding: 6px;
+      z-index: 2000;
+      border: 1px solid var(--border);
+    }
+
+    .lang-menu.show {
+      display: block;
+    }
+
+    .lang-item {
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: 0.15s;
+      color: var(--text-secondary);
+    }
+
+    .lang-item:hover {
+      background: var(--surface-2);
+      color: var(--blue-text);
+    }
+
+    .lang-item.active {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+      font-weight: 600;
+    }
+  </style>
+  <script src="/i18n.js"></script>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">🌿</div>
+      <div>
+        <div class="nav-title" data-t="nav_title">Volunteer Support Hub</div>
+        <div class="nav-subtitle" data-t="nav_subtitle">Field Operations Command</div>
+      </div>
+    </div>
+    <div class="nav-controls">
+      <div class="nav-pill" data-t="nav_regions">🌍 All Regions ▾</div>
+
+      <!-- Premium Language Dropdown -->
+      <div class="lang-dropdown">
+        <button class="lang-drop-btn" onclick="window.toggleLangDropdown(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span id="currentLangLabel">English</span>
+        </button>
+        <div class="lang-menu" id="langDropdownMenu">
+          <div class="lang-item lang-select-item" data-lang="en" onclick="window.setLang('en')">English</div>
+          <div class="lang-item lang-select-item" data-lang="hi" onclick="window.setLang('hi')">Hindi</div>
+          <div class="lang-item lang-select-item" data-lang="te" onclick="window.setLang('te')">Telugu</div>
+        </div>
+      </div>
+
+      <div class="nav-pill" onclick="logout()" data-t="nav_logout">🚪 Logout</div>
+      <div class="nav-avatar" id="userInitials">V</div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+
+    <div class="page-header">
+      <h1 data-t="volunteer_title">Operations Overview</h1>
+      <p data-t="volunteer_subtitle">Active monitoring and field intervention tracking · Real-time sync</p>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row">
+
+      <div class="kpi kpi-green">
+        <div class="kpi-icon">
+          <span>🧑🤝🧑</span>
+          <span class="kpi-badge" data-t="kpi_status_active">Active</span>
+        </div>
+        <div class="kpi-value" id="ngo-user-count">0</div>
+        <div class="kpi-label" data-t="kpi_youth">Youth Impacted</div>
+        <div class="kpi-delta" data-t="kpi_delta_users" id="ngo-user-delta">↑ 0% vs last month</div>
+        <div class="kpi-bar"></div>
+      </div>
+
+      <div class="kpi kpi-red">
+        <div class="kpi-icon">
+          <span>⚠️</span>
+          <span class="kpi-badge" data-t="kpi_status_critical">Critical</span>
+        </div>
+        <div class="kpi-value" id="ngo-sos-count">0</div>
+        <div class="kpi-label" data-t="kpi_high_risk">High Risk Cases</div>
+        <div class="kpi-delta" data-t="kpi_delta_sos" id="ngo-sos-delta">0 new this week</div>
+        <div class="kpi-bar"></div>
+      </div>
+
+      <div class="kpi kpi-yellow">
+        <div class="kpi-icon">
+          <span>🔔</span>
+          <span class="kpi-badge" data-t="kpi_status_pending">Pending</span>
+        </div>
+        <div class="kpi-value" id="ngo-pending-alerts">0</div>
+        <div class="kpi-label" data-t="kpi_active_alerts">Active Alerts</div>
+        <div class="kpi-delta" data-t="kpi_delta_alerts" id="ngo-pending-delta">0 escalated today</div>
+        <div class="kpi-bar"></div>
+      </div>
+
+      <div class="kpi kpi-blue">
+        <div class="kpi-icon">
+          <span>💙</span>
+          <span class="kpi-badge" data-t="kpi_status_score">Score</span>
+        </div>
+        <div class="kpi-value" id="ngo-vibe-score">0</div>
+        <div class="kpi-label" data-t="kpi_wellbeing">Wellbeing Index</div>
+        <div class="kpi-delta" data-t="kpi_delta_index" id="ngo-vibe-delta">Starting baseline</div>
+        <div class="kpi-bar"></div>
+      </div>
+
+      <div class="kpi kpi-lavender">
+        <div class="kpi-icon">
+          <span>🤝</span>
+          <span class="kpi-badge" data-t="kpi_status_engagement">Engagement</span>
+        </div>
+        <div class="kpi-value" id="ngo-registration-count">0</div>
+        <div class="kpi-label" data-t="kpi_community">Community</div>
+        <div class="kpi-delta" data-t="kpi_delta_engagement">Active Support</div>
+        <div class="kpi-bar"></div>
+      </div>
+
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+
+      <!-- LEFT COLUMN -->
+      <div class="left-col">
+
+        <!-- TREND CHART -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" data-t="pan_trend">Wellbeing Trend · Last 30 Days</div>
+            <button class="panel-action" data-t="btn_details">View Details</button>
+          </div>
+          <div class="chart-wrap">
+            <svg viewBox="0 0 800 160" preserveAspectRatio="none" style="width:100%; height:100%;">
+              <path d="M0,120 Q100,110 200,90 T400,100 T600,60 T800,80" fill="none" stroke="var(--blue)" stroke-width="3" />
+              <circle cx="200" cy="90" r="4" fill="var(--blue)" />
+              <circle cx="600" cy="60" r="4" fill="var(--blue)" />
+            </svg>
+            <div class="chart-labels">
+              <span>Day 1</span>
+              <span>Day 10</span>
+              <span>Day 20</span>
+              <span>Today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HEATMAP OVERVIEW -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" data-t="pan_risk">Regional Risk Intensity Map</div>
+            <div class="heatmap-legend">
+              <div class="leg-item"><div class="leg-dot hm-low"></div><span data-t="leg_stable">Stable</span></div>
+              <div class="leg-item"><div class="leg-dot hm-high"></div><span data-t="leg_critical">High Risk</span></div>
+            </div>
+          </div>
+          <div class="heatmap-grid" id="heatmap">
+            <!-- cells generated via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-col">
+
+        <!-- ACTIVE INTERVENTIONS -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" data-t="pan_alert">🚨 Field Alerts</div>
+            <div class="panel-action" id="ngo-sos-count-side">0</div>
+          </div>
+          <div id="interventionAlertsList">
+            <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">Syncing data...</div>
+          </div>
+        </div>
+
+        <!-- TOP CIRCLES -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏆 Growing Circles</div>
+            <div class="panel-action">Live</div>
+          </div>
+          <div id="topCirclesList">
+            <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">Syncing data...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" data-t="pan_alert_all">Active Interventions</div>
+            <div class="panel-action" id="ngo-alert-count-side">0</div>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); line-height:1.5;" data-t="pan_alert_desc">Interventions require immediate local verification by assigned NGO field nodes.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- REGION INSIGHTS -->
+    <div class="panel region-insights-panel">
+      <div class="panel-header">
+        <div class="panel-title" data-t="pan_insights">Regional Insights & Field Metrics</div>
+        <button class="panel-action" data-t="btn_map">Toggle Node Map</button>
+      </div>
+      <div class="region-cards-grid" id="regionCards">
+        <!-- Cards generated via JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Auth & Sync Logic
+    async function syncStats() {
+      try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+        if (data.success) {
+          const s = data.stats;
+          // Main KPIs
+          document.getElementById('ngo-user-count').textContent = s.totalUsers.toLocaleString();
+          document.getElementById('ngo-sos-count').textContent = s.activeSOS;
+          document.getElementById('ngo-sos-count-side').textContent = s.activeSOS;
+          document.getElementById('ngo-pending-alerts').textContent = s.pendingAlerts;
+          document.getElementById('ngo-alert-count-side').textContent = s.pendingAlerts;
+          document.getElementById('ngo-registration-count').textContent = (s.totalRegistrations || 0).toLocaleString();
+
+          const vScore = s.averageWellbeingScore || 0;
+          document.getElementById('ngo-vibe-score').textContent = vScore;
+
+          // Top Circles
+          const circlesList = document.getElementById('topCirclesList');
+          if (data.topCircles && data.topCircles.length > 0) {
+            circlesList.innerHTML = data.topCircles.map(c => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:10px; background:var(--surface-2); margin-bottom:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <span style="font-size:18px;">${c.icon}</span>
+                  <div>
+                    <div style="font-size:13px; font-weight:600;">${c.name}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${c.slug}</div>
+                  </div>
+                </div>
+                <div style="font-size:12px; font-weight:700; color:var(--blue-text);">${c.memberCount} Mbrs</div>
+              </div>
+            `).join('');
+          }
+
+          // Intervention Alerts
+          const alertsList = document.getElementById('interventionAlertsList');
+          if (data.recentAlerts && data.recentAlerts.length > 0) {
+            alertsList.innerHTML = data.recentAlerts.map(a => `
+                      <div class="alert-item">
+                          <div class="alert-dot ${a.urgency === 'High' ? 'red' : 'yellow'}"></div>
+                          <div>
+                              <div class="alert-text">${a.type.replace('_', ' ')} — ${a.location || 'Active Region'}</div>
+                              <div class="alert-sub">Status: ${a.status}</div>
+                          </div>
+                          <div class="alert-time">${new Date(a.timestamp).toLocaleTimeString()}</div>
+                      </div>
+                  `).join('');
+          } else {
+            alertsList.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">No active interventions currently.</div>`;
+          }
+        }
+      } catch (e) { console.warn('Syncing data...'); }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/auth.html';
+    }
+
+    // Generate heatmap (Mock for now)
+    const levels = ['hm-low', 'hm-low-mid', 'hm-mid', 'hm-mid-high', 'hm-high'];
+    const hmLabels = ['Stable', 'Low Risk', 'Moderate', 'Elevated', 'High Risk'];
+    const pattern = [0, 1, 2, 1, 0, 2, 3, 1, 4, 1, 0, 2, 1, 3, 2, 1, 0, 2, 1, 0];
+    const hm = document.getElementById('heatmap');
+    pattern.forEach((l, i) => {
+      const d = document.createElement('div');
+      d.className = 'hm-cell ' + levels[l];
+      d.title = `Region ${i + 1}: ${hmLabels[l]}`;
+      hm.appendChild(d);
+    });
+
+    // Region cards (Empty state)
+    const grid = document.getElementById('regionCards');
+    grid.innerHTML = `<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">📡 All field systems synchronized. Waiting for initial user registration to display regional insights.</div>`;
+
+    // Set user initials
+    try {
+      const user = JSON.parse(localStorage.getItem('manosetu-user') || '{}');
+      const name = user.fullName || user.username || 'Volunteer';
+      const parts = name.split(' ');
+      document.getElementById('userInitials').textContent = (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    } catch (e) { }
+
+    syncStats();
+    setInterval(syncStats, 10000); 
+  </script>
+</body>
+</html>

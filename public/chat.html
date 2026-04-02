@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem('x-session-token');
+        if (!token && !window.location.pathname.includes('auth.html')) window.location.href = '/auth.html';
+        
+        // Interceptor
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (typeof resource === 'string' && resource.startsWith('/api/') && !resource.startsWith('/api/auth')) {
+                config = config || {}; config.headers = config.headers || {};
+                config.headers['x-session-token'] = localStorage.getItem('x-session-token') || '';
+            }
+            return originalFetch(resource, config);
+        };
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ManoSetu — AI Companion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --bg: #f8f9fc;
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --text: #1a1a2e;
+            --text-muted: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); padding-top: 80px; overflow: hidden; height: 100vh; }
+
+        /* NAVBAR */
+        nav { position: fixed; top: 0; left: 0; right: 0; height: 75px; background: rgba(255,255,255,0.9); backdrop-filter: blur(16px); display: flex; align-items: center; padding: 0 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
+        .logo { font-weight: 800; font-size: 24px; color: var(--purple); text-decoration: none; margin-right: auto; }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: 0.2s; }
+        .nav-links a:hover { color: var(--purple); }
+
+        .chat-container { max-width: 900px; margin: 20px auto; height: calc(100vh - 120px); background: white; border-radius: 32px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.05); border: 1px solid var(--glass-border); }
+        
+        .chat-header { padding: 24px 32px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 16px; background: white; }
+        .ai-avatar { width: 48px; height: 48px; background: var(--purple); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; box-shadow: 0 8px 16px rgba(124, 58, 237, 0.2); }
+        .header-info h2 { font-size: 18px; font-weight: 700; color: var(--text); }
+        .header-info p { font-size: 12px; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .header-info p::before { content: ''; width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block; }
+
+        .chat-messages { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; background: #fafbff; }
+        .message { max-width: 80%; display: flex; flex-direction: column; gap: 6px; }
+        .message.user { align-self: flex-end; }
+        .message.ai { align-self: flex-start; }
+
+        .bubble { padding: 14px 20px; border-radius: 20px; font-size: 15px; line-height: 1.5; position: relative; }
+        .user .bubble { background: var(--purple); color: white; border-bottom-right-radius: 4px; box-shadow: 0 10px 20px rgba(124, 58, 237, 0.15); }
+        .ai .bubble { background: white; color: var(--text); border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+
+        .timestamp { font-size: 10px; color: var(--text-muted); font-weight: 500; margin: 0 4px; }
+        .user .timestamp { align-self: flex-end; }
+
+        .chat-input-area { padding: 24px 32px; background: white; border-top: 1px solid #f1f5f9; display: flex; gap: 16px; align-items: center; }
+        .input-wrapper { flex: 1; position: relative; }
+        .chat-input { width: 100%; padding: 16px 24px; border-radius: 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: inherit; font-size: 15px; outline: none; transition: 0.3s; }
+        .chat-input:focus { border-color: var(--purple); background: white; box-shadow: 0 0 0 4px var(--purple-light); }
+
+        .send-btn { width: 52px; height: 52px; background: var(--purple); color: white; border: none; border-radius: 16px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(124, 58, 237, 0.2); }
+        .send-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(124, 58, 237, 0.3); }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .typing-indicator { font-size: 12px; color: var(--text-muted); margin-bottom: -15px; display: none; }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message { animation: fadeIn 0.3s ease-out forwards; }
+
+        /* Custom Scrollbar */
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+    <script src="/i18n.js"></script>
+</head>
+<body>
+    <nav>
+        <a href="/index.html" class="logo">ManoSetu</a>
+        <div class="nav-links">
+            <a href="/user-dashboard.html">My Space</a>
+            <a href="/wellness.html">Wellness</a>
+            <a href="/community.html">Safe Board</a>
+            <a href="/booking.html">Sessions</a>
+        </div>
+    </nav>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="ai-avatar">🤖</div>
+            <div class="header-info">
+                <h2>ManoSetu Companion</h2>
+                <p>AI Counselor • Always Online</p>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatWindow">
+            <!-- Messages will be loaded here -->
+        </div>
+
+        <div id="typing" class="typing-indicator" style="margin-left: 32px; margin-bottom: 10px;">AI is thinking...</div>
+
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="text" id="userInput" class="chat-input" placeholder="Share how you're feeling today..." onkeypress="handleKeyPress(event)">
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chatWindow');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typing');
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/chat/history');
+                const data = await res.json();
+                if (data.success) {
+                    chatWindow.innerHTML = '';
+                    data.history.forEach(msg => appendMessage(msg.role, msg.text, false));
+                    scrollToBottom();
+                }
+            } catch (e) {
+                console.error('History load failed', e);
+            }
+        }
+
+        function appendMessage(role, text, animate = true) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            msgDiv.innerHTML = `
+                <div class="bubble">${text}</div>
+                <span class="timestamp">${timestamp}</span>
+            `;
+            
+            if (!animate) msgDiv.style.animation = 'none';
+            chatWindow.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Clear input and show user message
+            userInput.value = '';
+            appendMessage('user', text);
+            
+            // Show typing
+            typingIndicator.style.display = 'block';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            scrollToBottom();
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                
+                typingIndicator.style.display = 'none';
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+
+                if (data.success) {
+                    appendMessage('ai', data.response);
+                } else {
+                    appendMessage('ai', 'Something went wrong. Please try again.');
+                }
+            } catch (e) {
+                typingIndicator.style.display = 'none';
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                appendMessage('ai', 'Network error. Are you online?');
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function scrollToBottom() {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        window.onload = () => {
+            loadHistory();
+            if (window.i18nInit) window.i18nInit();
+        };
+    </script>
+</body>
+</html>

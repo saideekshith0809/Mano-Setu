@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    const token = localStorage.getItem('x-session-token');
+    if (!token && !window.location.pathname.includes('auth.html')) window.location.href = '/auth.html';
+    
+    // Interceptor
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let [resource, config] = arguments;
+        if (typeof resource === 'string' && resource.startsWith('/api/') && !resource.startsWith('/api/auth')) {
+            config = config || {}; config.headers = config.headers || {};
+            config.headers['x-session-token'] = localStorage.getItem('x-session-token') || '';
+        }
+        return originalFetch(resource, config);
+    };
+</script>
+
+    <meta charset="UTF-8"><title>ManoSetu - Wellness Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap" rel="stylesheet">
+:root {
+    --purple: #7c3aed; --purple-light: #a78bfa; --pink: #ec4899; --teal: #0d9488;
+    --glass: rgba(255, 255, 255, 0.7); --glass-border: rgba(255, 255, 255, 0.4);
+    --radius: 24px;
+}
+
+body { 
+    font-family: 'Sora', sans-serif; background: #fdfcfe; color: #1e1e35; margin: 0; padding-top: 90px;
+    min-height: 100vh; overflow-x: hidden; position: relative;
+}
+
+/* AURORA BACKGROUND */
+.aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; filter: blur(100px); opacity: 0.5; transition: opacity 2s; }
+.aurora-blob { position: absolute; width: 60vw; height: 60vw; border-radius: 50%; }
+.a1 { top: -10%; left: -10%; background: #ede9fe; animation: drift 20s infinite alternate; }
+.a2 { bottom: -10%; right: -10%; background: #fae8ff; animation: drift 25s infinite alternate-reverse; }
+.a3 { top: 20%; right: 10%; background: #f0fdfa; animation: drift 30s infinite; }
+
+@keyframes drift {
+    0% { transform: translate(0,0) scale(1); }
+    100% { transform: translate(10%, 15%) scale(1.1); }
+}
+
+nav { position: fixed; top: 0; left: 0; right: 0; height: 75px; background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); display: flex; align-items: center; padding: 0 48px; border-bottom: 1px solid rgba(0,0,0,0.03); z-index: 1000; }
+.logo { font-weight: 800; font-size: 24px; background: linear-gradient(135deg, var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; margin-right: auto; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a { text-decoration: none; color: #64748b; font-weight: 600; font-size: 14px; transition: 0.3s; }
+.nav-links a:hover { color: var(--purple); }
+
+.container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; position: relative; }
+
+/* MOD MODERN CARDS */
+.glass-card { 
+    background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); 
+    border-radius: var(--radius); padding: 40px; box-shadow: 0 10px 40px rgba(124,58,237,0.06); 
+    margin-bottom: 32px; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mood-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 40px 0; }
+.mood-card { 
+    background: white; border: 1px solid rgba(0,0,0,0.04); border-radius: 20px; padding: 28px 16px; 
+    cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; 
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+
+.mood-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+.mood-card span { font-size: 48px; transition: 0.4s; }
+.mood-card:hover span { transform: scale(1.2); }
+.mood-card p { font-size: 13px; font-weight: 700; margin: 0; color: #475569; letter-spacing: -0.2px; }
+
+.mood-card.active { border-width: 2px; transform: scale(1.05); box-shadow: 0 20px 50px rgba(124,58,237,0.15); }
+.mood-card.active.v-happy { border-color: #fbbf24; background: rgba(251,191,36,0.05); }
+.mood-card.active.happy { border-color: #34d399; background: rgba(52,211,153,0.05); }
+.mood-card.active.neutral { border-color: #818cf8; background: rgba(129,140,248,0.05); }
+.mood-card.active.sad { border-color: #60a5fa; background: rgba(96,165,250,0.05); }
+.mood-card.active.angry { border-color: #f87171; background: rgba(248,113,113,0.05); }
+
+/* ZEN JOURNALING */
+.zen-journal-area {
+    width: 100%; min-height: 200px; background: rgba(255,255,255,0.4); 
+    border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; padding: 24px;
+    font-family: inherit; font-size: 16px; line-height: 1.8; color: #1e293b;
+    margin: 24px 0; outline: none; transition: 0.3s; resize: vertical;
+}
+.zen-journal-area:focus { background: white; border-color: var(--purple-light); box-shadow: 0 0 0 4px rgba(124,58,237,0.05); }
+
+.premium-btn {
+    background: linear-gradient(135deg, var(--purple), var(--pink)); color: white;
+    padding: 18px 36px; border-radius: 100px; border: none; font-weight: 700;
+    cursor: pointer; font-size: 15px; box-shadow: 0 8px 32px rgba(124,58,237,0.3);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 10px;
+}
+.premium-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,0.4); }
+.premium-btn:active { transform: scale(0.98); }
+<script src="/i18n.js"></script>
+</head>
+<body>
+    
+<nav>
+    <a href="/index.html" class="logo">ManoSetu</a>
+    <div class="nav-links">
+        <a href="/index.html" data-t="nav_home">Home</a>
+        <a href="/wellness.html" data-t="nav_wellness">Wellness</a>
+        <a href="/community.html" data-t="nav_community">Safe Board</a>
+        <a href="/booking.html" data-t="nav_booking">Book Session</a>
+        <a href="/dashboard.html" id="dashLink" data-t="nav_dashboard">Dashboard</a>
+    </div>
+    <button class="btn-sos" onclick="triggerSOS()" data-t="nav_help">🚑 Help</button>
+
+    <!-- Premium Language Dropdown -->
+    <div class="lang-dropdown">
+        <button class="lang-drop-btn" onclick="window.toggleLangDropdown(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="currentLangLabel">English</span>
+        </button>
+        <div class="lang-menu" id="langDropdownMenu">
+            <div class="lang-item lang-select-item" data-lang="en" onclick="window.setLang('en')">English</div>
+            <div class="lang-item lang-select-item" data-lang="hi" onclick="window.setLang('hi')">Hindi</div>
+            <div class="lang-item lang-select-item" data-lang="te" onclick="window.setLang('te')">Telugu</div>
+        </div>
+    </div>
+
+</nav>
+
+    <!-- BACKGROUND AURORA BLobs -->
+    <div class="aurora">
+        <div class="aurora-blob a1"></div>
+        <div class="aurora-blob a2"></div>
+        <div class="aurora-blob a3"></div>
+    </div>
+
+    <div class="container" style="animation: fadeUp 0.8s ease;">
+        <h1 style="font-size: 40px; margin-bottom: 12px; font-weight: 800; letter-spacing: -1px;">How are you feeling?</h1>
+        <p style="color: #64748b; font-size: 17px; font-weight: 500;">Every feeling is a step toward understanding yourself.</p>
+        
+        <div class="glass-card">
+            <div class="mood-grid">
+                 <div class="mood-card v-happy" onclick="selectMood(this, 'Very Happy')"><span>🤩</span><p>Very Happy</p></div>
+                 <div class="mood-card happy" onclick="selectMood(this, 'Happy')"><span>😊</span><p>Happy</p></div>
+                 <div class="mood-card neutral" onclick="selectMood(this, 'Neutral')"><span>😐</span><p>Neutral</p></div>
+                 <div class="mood-card sad" onclick="selectMood(this, 'Sad')"><span>😔</span><p>Sad</p></div>
+                 <div class="mood-card angry" onclick="selectMood(this, 'Angry')"><span>😠</span><p>Angry</p></div>
+            </div>
+            <div id="encouragement" style="text-align: center; height: 32px; font-weight: 700; color: #0d9488; font-size: 18px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));"></div>
+        </div>
+
+        <div class="glass-card">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                <span style="font-size:24px;">🛡️</span>
+                <h2 style="font-size: 22px; margin: 0;">Private Journal</h2>
+            </div>
+            <p style="color: #64748b; font-size: 14px; margin: 0;">Your safe space for deep reflections. Locked & Private.</p>
+            <textarea class="zen-journal-area" id="journalInput" placeholder="I feel..."></textarea>
+            <button class="premium-btn" onclick="saveEntry()">
+                <span>Save Safely</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </button>
+        </div>
+    </div>
+    <script>
+        async function selectMood(el, mood) {
+            document.querySelectorAll('.mood-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            
+            const msgs = {
+                'Very Happy': 'That is amazing! Keep that light shining! ✨',
+                'Happy': 'Glad to hear you are having a good day! 🌸',
+                'Neutral': 'A steady day is a good day. Stay balanced. ⚖️',
+                'Sad': 'It is okay to not be okay. We are here with you. ❤️',
+                'Angry': 'Take a deep breath. Let it out slowly. You got this. 🌿'
+            };
+            document.getElementById('encouragement').textContent = msgs[mood];
+            document.getElementById('encouragement').style.animation = 'none';
+            document.getElementById('encouragement').offsetHeight;
+            document.getElementById('encouragement').style.animation = 'fadeUp 0.4s ease';
+
+            // PERSISTENCE
+            try {
+                await fetch('/api/mood', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mood: el.querySelector('span').textContent })
+                });
+            } catch (err) { console.error('Mood sync error', err); }
+        }
+
+        async function saveEntry() {
+            const input = document.getElementById('journalInput');
+            if (!input.value.trim()) return;
+            
+            const btn = document.querySelector('.premium-btn');
+            const originalTxt = btn.innerHTML;
+            
+            btn.innerHTML = '✨ Thought Saved...';
+            btn.style.background = 'var(--teal)';
+            
+            try {
+                // Future integration: Save to local vault or database
+                setTimeout(() => {
+                    btn.innerHTML = originalTxt;
+                    btn.style.background = '';
+                    input.value = '';
+                }, 2000);
+            } catch(e) {}
+        }
+    </script>
+
+    <style>
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+
+
+
+
+
+</body>
+</html>

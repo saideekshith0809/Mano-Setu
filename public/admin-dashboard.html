@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem('x-session-token');
+        if (!token) window.location.href = '/auth.html';
+        const role = localStorage.getItem('manosetu-role');
+        if (role !== 'admin') window.location.href = '/auth.html';
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin HUD — ManoSetu Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --secondary: #ec4899;
+            --accent: #10b981;
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { 
+            background: var(--bg); 
+            color: var(--text-primary); 
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.15), transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.1), transparent 50%);
+            overflow-x: hidden;
+        }
+
+        /* HUD LAYOUT */
+        .hud-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .hud-title h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hud-title p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .hud-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .hud-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .hud-btn:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+        }
+
+        /* KPI HUD */
+        .kpi-hud-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-hud-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(20px);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-hud-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            opacity: 0.5;
+        }
+
+        .kpi-hud-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-hud-value {
+            font-size: 32px;
+            font-weight: 800;
+            font-family: 'DM Serif Display', serif;
+        }
+
+        .kpi-hud-trend {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .trend-up { color: var(--accent); }
+
+        /* MAIN HUD GRID */
+        .main-hud-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .hud-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            backdrop-filter: blur(20px);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* SYSTEM VITALS */
+        .vital-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vital-info p:first-child { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+        .vital-info p:last-child { font-weight: 700; font-size: 16px; }
+
+        /* ACTIVITY LIST */
+        .log-item {
+            display: flex;
+            gap: 16px;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .log-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: var(--primary); display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+
+        .log-details p:first-child { font-weight: 600; margin-bottom: 2px; }
+        .log-details p:last-child { color: var(--text-secondary); font-size: 11px; }
+
+        /* HUD ANIMATIONS */
+        @keyframes pulse-border {
+            0% { border-color: rgba(255, 255, 255, 0.1); }
+            50% { border-color: rgba(124, 58, 237, 0.4); }
+            100% { border-color: rgba(255, 255, 255, 0.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-wrapper">
+        <header class="hud-header">
+            <div class="hud-title">
+                <h1>ManoSetu Master HUD</h1>
+                <p>System Administrator Command Center · Global Oversight</p>
+            </div>
+            <div class="hud-controls">
+                <button class="hud-btn" onclick="syncAll()">⚡ Force Sync</button>
+                <button class="hud-btn" onclick="logout()">🚪 Exit Command</button>
+            </div>
+        </header>
+
+        <!-- GLOBAL KPIs -->
+        <div class="kpi-hud-row">
+            <div class="kpi-hud-card">
+                <div class="kpi-hud-label">Total Users</div>
+                <div class="kpi-hud-value" id="val-users">0</div>
+                <div class="kpi-hud-trend trend-up"><span>▲</span> 12% growth</div>
+            </div>
+            <div class="kpi-hud-card" style="border-left-color: var(--secondary);">
+                <div class="kpi-hud-label">Health Index</div>
+                <div class="kpi-hud-value" id="val-wellbeing">0%</div>
+                <div class="kpi-hud-trend"><span>⚖️</span> System Average</div>
+            </div>
+            <div class="kpi-hud-card">
+                <div class="kpi-hud-label">Active SOS</div>
+                <div class="kpi-hud-value" id="val-sos">0</div>
+                <div class="kpi-hud-trend" style="color:#ef4444;"><span>🚨</span> Critical Priority</div>
+            </div>
+            <div class="kpi-hud-card">
+                <div class="kpi-hud-label">Circle Members</div>
+                <div class="kpi-hud-value" id="val-groups">0</div>
+                <div class="kpi-hud-trend trend-up"><span>📈</span> Scaling fast</div>
+            </div>
+            <div class="kpi-hud-card">
+                <div class="kpi-hud-label">AI Interactions</div>
+                <div class="kpi-hud-value" id="val-ai">0</div>
+                <div class="kpi-hud-trend"><span>🤖</span> 99.9% Up</div>
+            </div>
+        </div>
+
+        <!-- MAIN HUD MODULES -->
+        <div class="main-hud-grid">
+            
+            <div class="hud-panel">
+                <div class="panel-title">
+                    📍 Global Platform Health
+                    <span class="panel-badge">LIVE NODES</span>
+                </div>
+                
+                <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 20px; border: 1px dashed var(--border);">
+                    <div style="text-align: center;">
+                        <span style="font-size: 40px; display: block; margin-bottom: 10px;">🌐</span>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Global Node Map Initialization...</p>
+                        <p style="color: var(--primary); font-weight: 800; font-size: 12px; margin-top: 10px;">DELEGATING FIELD OPS TO VOLUNTEERS</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px;">
+                    <div class="panel" style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid var(--border);">
+                        <h4>AI Logic Pulse</h4>
+                        <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 12px 0;">
+                            <div style="width: 85%; height: 100%; background: var(--primary); border-radius: 2px;"></div>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-secondary);">Sentiment Accuracy: 85.4%</p>
+                    </div>
+                    <div class="panel" style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid var(--border);">
+                        <h4>Regional Saturation</h4>
+                        <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 12px 0;">
+                            <div style="width: 42%; height: 100%; background: var(--secondary); border-radius: 2px;"></div>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-secondary);">Target: 50 nodes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-panel">
+                <div class="panel-title">⚡ Platform Vitals</div>
+                
+                <div class="vital-row">
+                    <div class="vital-info"><p>DATABASE</p><p>Synchronized</p></div>
+                    <div style="color: var(--accent);">● ONLINE</div>
+                </div>
+                <div class="vital-row">
+                    <div class="vital-info"><p>SERVER UPTIME</p><p>99.98%</p></div>
+                    <div style="color: var(--primary);">9d 14h 2m</div>
+                </div>
+                <div class="vital-row" style="border:none;">
+                    <div class="vital-info"><p>SECURITY LEVEL</p><p>SSL SECURED</p></div>
+                    <div style="color: var(--accent);">AES-256</div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 30px;">🛰️ System Activity</div>
+                <div id="adminActivityLog">
+                    <div class="log-item">
+                        <div class="log-icon">🤖</div>
+                        <div class="log-details"><p>AI Model Synced</p><p>Gemini-1.5 API Check Passed</p></div>
+                    </div>
+                    <div class="log-item">
+                        <div class="log-icon" style="background:var(--secondary);">🔑</div>
+                        <div class="log-details"><p>Auth Policy Verified</p><p>Login Redirects Optimized</p></div>
+                    </div>
+                    <div class="log-item">
+                        <div class="log-icon" style="background:var(--accent);">🛡️</div>
+                        <div class="log-details"><p>Volunteer Node Up</p><p>Awaiting Field Ops Input</p></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function logout() {
+            localStorage.clear();
+            window.location.href = '/auth.html';
+        }
+
+        async function syncAll() {
+            try {
+                const res = await fetch('/api/dashboard');
+                const data = await res.json();
+                if (data.success) {
+                    const s = data.stats;
+                    document.getElementById('val-users').innerText = s.totalUsers.toLocaleString();
+                    document.getElementById('val-wellbeing').innerText = s.averageWellbeingScore + '%';
+                    document.getElementById('val-sos').innerText = s.activeSOS;
+                    document.getElementById('val-groups').innerText = (s.totalRegistrations || 0).toLocaleString();
+                    document.getElementById('val-ai').innerText = (s.totalMessages || 0).toLocaleString();
+                }
+            } catch(e) { console.warn('Command Center Syncing...'); }
+        }
+
+        syncAll();
+        setInterval(syncAll, 10000);
+    </script>
+
+</body>
+</html>

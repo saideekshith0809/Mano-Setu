@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem('x-session-token');
+        if (!token && !window.location.pathname.includes('auth.html')) window.location.href = '/auth.html';
+        
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (typeof resource === 'string' && resource.startsWith('/api/') && !resource.startsWith('/api/auth')) {
+                config = config || {}; config.headers = config.headers || {};
+                config.headers['x-session-token'] = localStorage.getItem('x-session-token') || '';
+            }
+            return originalFetch(resource, config);
+        };
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ManoSetu — Communities</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --teal: #0d9488;
+            --bg: #f8f9fc;
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --text: #1a1a2e;
+            --text-muted: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); padding-top: 80px; }
+
+        nav { position: fixed; top: 0; left: 0; right: 0; height: 75px; background: rgba(255,255,255,0.9); backdrop-filter: blur(16px); display: flex; align-items: center; padding: 0 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); z-index: 1000; border-bottom: 1px solid var(--glass-border); }
+        .logo { font-weight: 800; font-size: 24px; color: var(--purple); text-decoration: none; margin-right: auto; }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; }
+
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 40px; padding: 40px 20px; }
+
+        /* SIDEBAR / DISCOVER */
+        .sidebar { position: sticky; top: 120px; height: fit-content; }
+        .sidebar h3 { font-size: 20px; font-weight: 800; margin-bottom: 24px; font-family: 'DM Serif Display', serif; }
+        .community-list { display: flex; flex-direction: column; gap: 12px; }
+        .community-item { padding: 16px; background: white; border-radius: 20px; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 16px; }
+        .community-item:hover { transform: translateX(8px); border-color: var(--purple); box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
+        .community-item.active { background: var(--purple); color: white; border-color: var(--purple); }
+        .community-item.active .comm-icon { background: rgba(255,255,255,0.2); }
+        .community-item.active p { color: rgba(255,255,255,0.8); }
+        .comm-icon { width: 44px; height: 44px; background: var(--purple-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .comm-info h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+        .comm-info p { font-size: 11px; color: var(--text-muted); }
+
+        /* MAIN FEED */
+        .feed-header { margin-bottom: 32px; }
+        .feed-header h1 { font-family: 'DM Serif Display', serif; font-size: 40px; margin-bottom: 8px; }
+        .feed-header p { color: var(--text-muted); font-size: 15px; }
+
+        .feed-grid { display: flex; flex-direction: column; gap: 24px; }
+        .post-card { background: white; border-radius: 24px; padding: 32px; border: 1px solid var(--glass-border); box-shadow: 0 4px 12px rgba(0,0,0,0.02); transition: 0.3s; }
+        .post-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
+        
+        .post-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .avatar { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; }
+        .author-info h4 { font-size: 15px; font-weight: 700; }
+        .author-info p { font-size: 12px; color: var(--text-muted); }
+        .category-tag { margin-left: auto; font-size: 10px; background: var(--purple-light); color: var(--purple); padding: 4px 12px; border-radius: 100px; font-weight: 800; text-transform: uppercase; }
+
+        .post-content h2 { font-size: 20px; margin-bottom: 12px; font-weight: 700; }
+        .post-content p { color: var(--text-muted); line-height: 1.6; font-size: 15px; margin-bottom: 24px; }
+
+        .post-actions { display: flex; gap: 16px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        .action-btn { background: #f8fafc; border: none; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .action-btn:hover { background: #f1f5f9; }
+        .action-btn.active { color: #f43f5e; background: #fff1f2; }
+
+        /* FAB */
+        .fab { position: fixed; bottom: 40px; right: 40px; background: var(--purple); color: white; padding: 16px 28px; border-radius: 100px; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 15px 35px rgba(124, 58, 237, 0.4); display: flex; align-items: center; gap: 10px; }
+
+        /* MODAL */
+        .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 600px; border-radius: 32px; padding: 40px; position: relative; }
+        .close-modal { position: absolute; top: 24px; right: 24px; background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; }
+        .form-group { margin-bottom: 24px; }
+        .form-group label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+        .form-input { width: 100%; padding: 16px 20px; border-radius: 16px; border: 1px solid #e2e8f0; font-family: inherit; font-size: 15px; outline: none; }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; order: 2; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/index.html" class="logo">ManoSetu</a>
+        <div class="nav-links">
+            <a href="/user-dashboard.html">My Space</a>
+            <a href="/wellness.html">Wellness</a>
+            <a href="/chat.html">AI Chat</a>
+            <a href="/community.html" style="color: var(--purple); font-weight: 700;">Communities</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h3>Discover Spaces</h3>
+            <div class="community-list" id="communityList">
+                <div class="community-item active" onclick="filterCommunity('All', this)">
+                    <div class="comm-icon">🏠</div>
+                    <div class="comm-info">
+                        <h4>All Boards</h4>
+                        <p>Everything happening now</p>
+                    </div>
+                </div>
+                <!-- Communities will be loaded here -->
+            </div>
+        </aside>
+
+        <main>
+            <div class="feed-header">
+                <h1 id="feedTitle">All Boards</h1>
+                <p id="feedDesc">Join anonymous conversations across all our safe spaces.</p>
+            </div>
+
+            <div class="feed-grid" id="postFeed">
+                <!-- Posts will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <button class="fab" onclick="showPostModal()">
+        <span>➕</span> Share Anonymously
+    </button>
+
+    <div class="modal" id="postModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="hidePostModal()">✕</button>
+            <h2 style="font-family: 'DM Serif Display', serif; font-size: 32px; margin-bottom: 8px;">Share to Space</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 30px;">Choose a space and share your thoughts anonymously.</p>
+            
+            <div class="form-group">
+                <label>Target Space</label>
+                <select class="form-input" id="postCommunitySelect">
+                    <!-- Options will be loaded here -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Headline</label>
+                <input type="text" class="form-input" id="postTitle" placeholder="Give your post a title...">
+            </div>
+
+            <div class="form-group">
+                <label>Details</label>
+                <textarea class="form-input" id="postContent" style="height: 120px; resize: none;" placeholder="What's happening?"></textarea>
+            </div>
+
+            <button class="btn" style="width: 100%; padding: 18px; background: var(--purple); color: white; border: none; border-radius: 16px; font-weight: 700; cursor: pointer;" onclick="submitPost()">🚀 Post Safely</button>
+        </div>
+    </div>
+
+    <script>
+        let currentCommunity = 'All';
+        let communities = [];
+
+        async function init() {
+            await fetchCommunities();
+            await fetchPosts();
+        }
+
+        async function fetchCommunities() {
+            try {
+                const res = await fetch('/api/community/spaces');
+                const data = await res.json();
+                if (data.success) {
+                    communities = data.communities;
+                    renderCommunities();
+                }
+            } catch (e) {}
+        }
+
+        function renderCommunities() {
+            const list = document.getElementById('communityList');
+            const select = document.getElementById('postCommunitySelect');
+            
+            communities.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'community-item';
+                item.onclick = () => filterCommunity(c.slug, item, c.name, c.description);
+                item.innerHTML = `
+                    <div class="comm-icon">${c.icon}</div>
+                    <div class="comm-info">
+                        <h4>${c.name}</h4>
+                        <p>${c.description}</p>
+                    </div>
+                `;
+                list.appendChild(item);
+
+                const opt = document.createElement('option');
+                opt.value = c.slug;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        }
+
+        async function fetchPosts() {
+            try {
+                const res = await fetch(`/api/community/posts?community=${currentCommunity}`);
+                const data = await res.json();
+                if (data.success) renderPosts(data.posts);
+            } catch (e) {}
+        }
+
+        function renderPosts(posts) {
+            const feed = document.getElementById('postFeed');
+            if (posts.length === 0) {
+                feed.innerHTML = '<div style="text-align:center; padding: 60px; color: var(--text-muted);"><h3>Nothing here yet.</h3><p>Be the first to share in this space.</p></div>';
+                return;
+            }
+
+            feed.innerHTML = posts.map(p => {
+                const date = new Date(p.createdAt).toLocaleDateString();
+                const avatarColor = `hsl(${Math.random() * 360}, 60%, 50%)`; // Simplified for display
+                return `
+                    <div class="post-card">
+                        <div class="post-meta">
+                            <div class="avatar" style="background: ${avatarColor}">${(p.authorName || 'A')[0].toUpperCase()}</div>
+                            <div class="author-info">
+                                <h4>${p.authorName || 'Anonymous'}</h4>
+                                <p>${date}</p>
+                            </div>
+                            <div class="category-tag">${p.category || 'General'}</div>
+                        </div>
+                        <div class="post-content">
+                            <h2>${p.title}</h2>
+                            <p>${p.content}</p>
+                        </div>
+                        <div class="post-actions">
+                            <button class="action-btn" onclick="interact('${p._id}', 'hug', this)">🫂 <span>${p.upvotes || 0}</span> Hugs</button>
+                            <button class="action-btn" onclick="interact('${p._id}', 'metoo', this)">🤝 <span>${p.meTooCount || 0}</span> Me Too</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterCommunity(slug, el, name, desc) {
+            currentCommunity = slug;
+            document.querySelectorAll('.community-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            
+            document.getElementById('feedTitle').textContent = name || 'All Boards';
+            document.getElementById('feedDesc').textContent = desc || 'Join anonymous conversations across all our safe spaces.';
+            
+            fetchPosts();
+        }
+
+        async function interact(id, type, btn) {
+            try {
+                const res = await fetch(`/api/community/posts/${id}/${type}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    btn.classList.add('active');
+                    btn.querySelector('span').textContent = data[type === 'hug' ? 'upvotes' : 'meTooCount'];
+                }
+            } catch (e) {}
+        }
+
+        function showPostModal() { document.getElementById('postModal').style.display = 'flex'; }
+        function hidePostModal() { document.getElementById('postModal').style.display = 'none'; }
+
+        async function submitPost() {
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+            const community = document.getElementById('postCommunitySelect').value;
+            if (!title || !content) return alert('Please fill in everything.');
+
+            try {
+                const res = await fetch('/api/community/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content, category: community })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    hidePostModal();
+                    fetchPosts();
+                }
+            } catch (e) {}
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

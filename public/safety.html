@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><script>const token = localStorage.getItem('x-session-token'); if (!token && !window.location.pathname.includes('auth.html')) window.location.href = '/auth.html'; const originalFetch = window.fetch; window.fetch = async function() { let [resource, config] = arguments; if (typeof resource === 'string' && resource.startsWith('/api/') && !resource.startsWith('/api/auth')) { config = config || {}; config.headers = config.headers || {}; config.headers['x-session-token'] = localStorage.getItem('x-session-token') || ''; } return originalFetch(resource, config); };</script><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap" rel="stylesheet"><style>body { font-family: 'Sora', sans-serif; background: #f8f9fc; color: #1a1a2e; margin: 0; padding-top: 80px; } nav { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 0 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1000; } .logo { font-weight: 800; font-size: 24px; color: #7c3aed; text-decoration: none; margin-right: auto; } .nav-links { display: flex; gap: 24px; } .nav-links a { text-decoration: none; color: #64748b; font-weight: 500; font-size: 14px; } .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; } .card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 24px; } .btn { background: #7c3aed; color: white; padding: 12px 24px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }</style><script src="/i18n.js"></script>
+</head><body><nav><a href="/index.html" class="logo">ManoSetu</a><div class="nav-links"><a href="/index.html" data-t="nav_home" data-t="nav_home" data-t="nav_home">Home</a><a href="/chat.html">AI Chat</a><a href="/community.html" data-t="nav_community" data-t="nav_community" data-t="nav_community">Safe Board</a><a href="/wellness.html" data-t="nav_wellness" data-t="nav_wellness" data-t="nav_wellness">Wellness</a><a href="/booking.html" data-t="nav_booking" data-t="nav_booking" data-t="nav_booking">Sessions</a></div>
+    <!-- Native i18n Switcher -->
+    <div style="display: flex; gap: 8px; margin-left: 20px; background: #f1f5f9; padding: 4px; border-radius: 10px;">
+        <button class="lang-btn notranslate" onclick="window.setLang('en')" style="border: none; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px;">EN</button>
+        <button class="lang-btn notranslate" onclick="window.setLang('hi')" style="border: none; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px;">HI</button>
+        <button class="lang-btn notranslate" onclick="window.setLang('te')" style="border: none; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px;">TE</button>
+    </div>
+    <style>
+        .lang-btn.active { background: #7c3aed !important; color: white !important; }
+        .lang-btn:hover:not(.active) { background: #e2e8f0; }
+    </style>
+
+</nav><div class="container"><div class="card"><h1>🛡️ Safety Shield</h1><p>Your emergency network has been notified. Support is on the way.</p><button class="btn" style="background:#ef4444;">Deactivate Alert</button></div></div>
+
+
+
+
+
+</body></html>

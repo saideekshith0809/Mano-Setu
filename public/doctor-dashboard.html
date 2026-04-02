@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem('x-session-token');
+        if (!token) window.location.href = '/auth.html';
+        const role = localStorage.getItem('manosetu-role');
+        if (role !== 'doctor') window.location.href = '/auth.html';
+    </script>
+    <meta charset="UTF-8">
+    <title>ManoSetu - Clinical Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f0f4f8; /* Soft clinical background */
+            --primary: #0369a1; /* Deep professional blue */
+            --secondary: #38bdf8; /* Bright tech blue */
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-main); display: flex; }
+
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--card-bg); height: 100vh; border-right: 1px solid var(--border); position: fixed; display: flex; flex-direction: column; }
+        .brand { padding: 24px; font-weight: 700; font-size: 24px; color: var(--primary); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+        .nav-items { flex: 1; padding: 20px 0; }
+        .nav-item { padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: 0.2s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: #f8fafc; color: var(--primary); }
+        .nav-item.active { background: #f0f9ff; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+        .sidebar-footer { padding: 20px 24px; border-top: 1px solid var(--border); }
+        .logout-btn { color: #ef4444; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+
+        /* Main Content */
+        .main-content { margin-left: 260px; flex: 1; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); }
+        .header p { margin: 4px 0 0; color: var(--text-muted); font-size: 15px; }
+
+        /* KPI Grid */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .kpi-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .kpi-label { font-size: 14px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 36px; font-weight: 700; color: var(--primary); margin: 8px 0 4px; display: flex; align-items: center; gap: 12px; }
+        .kpi-trend { font-size: 13px; font-weight: 500; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--warning); }
+
+        /* Schedule Section */
+        .schedule-container { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .schedule-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .schedule-title { font-size: 18px; font-weight: 600; margin: 0; }
+        .btn-outline { border: 1px solid var(--border); background: transparent; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-main); }
+
+        .schedule-list { display: flex; flex-direction: column; }
+        .schedule-item { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .schedule-item:last-child { border-bottom: none; }
+        .schedule-item:hover { background: #f8fafc; }
+
+        .patient-info { display: flex; align-items: center; gap: 16px; }
+        .time-badge { background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--text-main); min-width: 80px; text-align: center; }
+        .patient-details h4 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+        .patient-details p { margin: 0; font-size: 13px; color: var(--text-muted); }
+        .tags { display: flex; gap: 8px; margin-top: 6px; }
+        .tag { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+        .tag.blue { background: #e0f2fe; color: #0369a1; }
+        .tag.yellow { background: #fef3c7; color: #b45309; }
+        .tag.red { background: #fee2e2; color: #b91c1c; }
+
+        .actions { display: flex; gap: 12px; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn-primary:hover { background: #0284c7; }
+        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: #f1f5f9; }
+
+        /* Patient Detail Modal (Hidden by default) */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: white; border-radius: 12px; width: 400px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { cursor: pointer; font-size: 20px; color: var(--text-muted); background: none; border: none; }
+        .patient-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .patient-stat { background: #f8fafc; padding: 12px; border-radius: 8px; }
+        .patient-stat span { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .patient-stat strong { font-size: 15px; }
+
+        .hidden { display: none !important; }
+        .view-section { animation: fadeIn 0.3s ease; }
+        
+        /* Messages View specific */
+        .message-row { padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
+        .message-row:hover { background: #f8fafc; }
+        .message-unread { border-left: 4px solid var(--primary); background: #f0f9ff; }
+
+    </style>
+<script src="/i18n.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        ManoSetu
+    </div>
+    <div class="nav-items">
+        <a href="#" class="nav-item active" onclick="switchView('schedule', this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            Schedule Today
+        </a>
+        <a href="#" class="nav-item" onclick="switchView('patients', this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Assigned Patients
+        </a>
+        <a href="#" class="nav-item" onclick="switchView('messages', this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Counseling Messages
+        </a>
+    </div>
+    <!-- Premium Language Dropdown -->
+    <div class="lang-dropdown" style="margin: 10px 24px 20px;">
+        <button class="lang-drop-btn" onclick="window.toggleLangDropdown(event)" style="width: 100%; justify-content: center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="currentLangLabel">English</span>
+        </button>
+        <div class="lang-menu" id="langDropdownMenu" style="bottom: 100%; top: auto;">
+            <div class="lang-item lang-select-item" data-lang="en" onclick="window.setLang('en')">English</div>
+            <div class="lang-item lang-select-item" data-lang="hi" onclick="window.setLang('hi')">Hindi</div>
+            <div class="lang-item lang-select-item" data-lang="te" onclick="window.setLang('te')">Telugu</div>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <a href="#" class="logout-btn" onclick="logout()" data-t="nav_logout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Secure Logout
+        </a>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="header">
+        <div>
+            <h1 id="docGreeting" data-t="doc_title">Clinical Dashboard</h1>
+            <p data-t="doc_subtitle">Patient schedule and clinical overview</p>
+        </div>
+        <button class="btn-primary" style="background: var(--success);" onclick="alert('Session line open.')">
+            <svg style="margin-right:6px; vertical-align:text-bottom" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <span data-t="doc_start_session">Start Next Session (4:00 PM)</span>
+        </button>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label" data-t="kpi_assigned">Patients Assigned</div>
+            <div class="kpi-value" id="statPatients">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label" data-t="doc_sessions_today">Sessions Today</div>
+            <div class="kpi-value" id="statSessions">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label" data-t="doc_urgent">Urgent Alerts</div>
+            <div class="kpi-value" id="statUrgent" style="color: var(--warning);">--</div>
+        </div>
+    </div>
+
+    <!-- VIEW: SCHEDULE -->
+    <div id="scheduleView" class="view-section">
+        <div class="schedule-container">
+            <div class="schedule-header">
+                <h3 class="schedule-title" data-t="doc_upcoming">Upcoming Appointments</h3>
+                <button class="btn-outline">View Calendar</button>
+            </div>
+            <div class="schedule-list" id="appointmentsList">
+                <div style="padding: 30px; text-align: center; color: var(--text-muted);">Loading schedule...</div>
+            </div>
+        </div>
+
+        <div class="schedule-container" style="margin-top: 32px; border-color: rgba(239, 68, 68, 0.2);">
+            <div class="schedule-header" style="background: rgba(239, 68, 68, 0.05); border-bottom-color: rgba(239, 68, 68, 0.2);">
+                <h3 class="schedule-title" style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🚨</span> Live Help Requests
+                </h3>
+                <span style="font-size: 13px; color: var(--text-muted); padding: 4px 10px; background: white; border-radius: 100px; font-weight: 500;">Auto-refreshing</span>
+            </div>
+            <div class="schedule-list" id="helpRequestsList">
+                <div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">Searching for active requests...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: PATIENTS -->
+    <div id="patientsView" class="view-section hidden">
+        <div class="schedule-container">
+            <div class="schedule-header">
+                <h3 class="schedule-title">Assigned Patients Directory</h3>
+                <div class="actions">
+                    <input type="text" placeholder="Search patients..." class="btn-outline" style="min-width: 200px;">
+                </div>
+            </div>
+            <div class="schedule-list" id="patientsList">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: MESSAGES -->
+    <div id="messagesView" class="view-section hidden">
+        <div class="schedule-container">
+            <div class="schedule-header">
+                <h3 class="schedule-title">Clinical Counseling Messages</h3>
+                <span class="tag blue">3 New Interactions</span>
+            </div>
+            <div class="schedule-list" id="messagesList">
+                <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+                    Clinical oversight panel loading...
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="patientModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size:20px;">Patient Brief</h3>
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="patient-stat-grid">
+            <div class="patient-stat">
+                <span>Name</span>
+                <strong id="mName">--</strong>
+            </div>
+            <div class="patient-stat">
+                <span>Age</span>
+                <strong id="mAge">--</strong>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Primary Focus</span>
+            <p style="margin: 4px 0 0; font-weight: 500; font-size: 15px;" id="mFocus">--</p>
+        </div>
+        <div>
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Recent Notes</span>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 8px;">
+                <p style="margin:0; font-size: 14px; line-height: 1.5;" id="mNotes">--</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const name = localStorage.getItem('manosetu-username');
+    if (name) document.getElementById('docGreeting').textContent = 'Dr. ' + name + '\'s Dashboard';
+
+    function logout() {
+        localStorage.removeItem('x-session-token');
+        localStorage.removeItem('manosetu-role');
+        window.location.href = '/auth.html';
+    }
+
+    function viewPatient(n, a, f, notes) {
+        document.getElementById('mName').textContent = n;
+        document.getElementById('mAge').textContent = a;
+        document.getElementById('mFocus').textContent = f;
+        document.getElementById('mNotes').textContent = notes;
+        document.getElementById('patientModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('patientModal').style.display = 'none';
+    }
+
+    // Help Requests Polling
+    async function fetchHelpRequests() {
+        try {
+            const res = await fetch('/api/sos/alerts', {
+                headers: { 'x-session-token': token }
+            });
+            const data = await res.json();
+            const list = document.getElementById('helpRequestsList');
+            
+            if (!data.success || data.count === 0) {
+                list.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">No active help requests nearby.</div>`;
+                return;
+            }
+
+            list.innerHTML = data.alerts.map(a => `
+                <div class="schedule-item" style="background: rgba(239, 68, 68, 0.02);">
+                    <div class="patient-info">
+                        <div class="time-badge" style="background: #fee2e2; color: #b91c1c;">URGENT</div>
+                        <div class="patient-details">
+                            <h4 style="color: #b91c1c;">Help Request - ${a.type.replace('_', ' ')}</h4>
+                            <p><strong>Location:</strong> ${a.lat ? `Lat: ${a.lat.toFixed(4)}, Lng: ${a.lng.toFixed(4)}` : a.location}</p>
+                            <p style="font-size: 11px; margin-top: 4px;">Time: ${new Date(a.timestamp).toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-primary" style="background: #ef4444;" onclick="resolveAlert('${a.id}')">Respond & Accept</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) { console.error('Error fetching alerts', e) }
+    }
+
+    async function resolveAlert(id) {
+        if (!confirm('Take responsibility for this request?')) return;
+        try {
+            await fetch(`/api/sos/alerts/${id}/resolve`, {
+                method: 'PATCH',
+                headers: { 'x-session-token': token }
+            });
+            fetchHelpRequests();
+        } catch(e) {}
+    }
+
+    fetchHelpRequests();
+    setInterval(fetchHelpRequests, 5000); // UI poll every 5s
+
+    // View Switching Logic
+    function switchView(viewId, el) {
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+
+        // Update sections
+        document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+        document.getElementById(viewId + 'View').classList.remove('hidden');
+
+        // Load data if needed
+        if (viewId === 'patients') loadPatients();
+        if (viewId === 'messages') loadMessages();
+    }
+
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/therapists/me/stats', { headers: { 'x-session-token': token } });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('statPatients').textContent = data.stats.assignedPatients;
+                document.getElementById('statSessions').textContent = data.stats.sessionsToday;
+                document.getElementById('statUrgent').textContent = data.stats.urgentAlerts;
+            }
+        } catch (e) {}
+    }
+
+    async function loadPatients() {
+        const list = document.getElementById('patientsList');
+        list.innerHTML = '<div style="padding:30px; text-align:center;">Fetching patient directory...</div>';
+        try {
+            const res = await fetch('/api/therapists/me/patients', { headers: { 'x-session-token': token } });
+            const data = await res.json();
+            if (data.success) {
+                list.innerHTML = data.patients.map(p => `
+                    <div class="schedule-item">
+                        <div class="patient-info">
+                            <div class="time-badge" style="background:var(--primary); color:white;">PATIENT</div>
+                            <div class="patient-details">
+                                <h4>${p.username} (${p.age})</h4>
+                                <p><strong>Focus:</strong> ${p.focus}</p>
+                                <p style="font-size:11px;">Last Session: ${p.lastSession}</p>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-secondary" onclick="viewPatient('${p.username}', '${p.age}', '${p.focus}', 'Active patient records.')">Clinical History</button>
+                            <button class="btn-primary" onclick="alert('Creating session link...')">Schedule Meeting</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) { list.innerHTML = 'Error loading patients.'; }
+    }
+
+    function loadAppointments() {
+        const list = document.getElementById('appointmentsList');
+        // Initial static display for demo if real fetch fails
+        list.innerHTML = `
+            <div class="schedule-item">
+                <div class="patient-info">
+                    <div class="time-badge">4:00 PM</div>
+                    <div class="patient-details">
+                        <h4>Aarav (Teen, 15)</h4>
+                        <p>Follow-up session</p>
+                        <div class="tags">
+                             <span class="tag blue">Stress Management</span>
+                             <span class="tag yellow">Elevated check-in</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn-secondary" onclick="viewPatient('Aarav', '15', 'Stress Management', 'Reported high stress on mood tracker today.')">View Notes</button>
+                    <button class="btn-primary" onclick="alert('Redirecting to secure video room...')">Join Video</button>
+                </div>
+            </div>
+            <div class="schedule-item">
+                <div class="patient-info">
+                    <div class="time-badge">5:30 PM</div>
+                    <div class="patient-details">
+                        <h4>Priya (Child, 9)</h4>
+                        <p>Initial Consultation</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn-secondary">View Notes</button>
+                    <button class="btn-primary">Join Video</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function loadMessages() {
+        const list = document.getElementById('messagesList');
+        const mockMessages = [
+            { user: 'Aarav', last: 'Will the session be at 4?', time: '10 mins ago', unread: true },
+            { user: 'Rahul', last: 'Thank you for the help yesterday.', time: '2 hours ago', unread: false },
+            { user: 'Priya (Parent)', last: 'Just shared the mood log.', time: '1 day ago', unread: false }
+        ];
+
+        list.innerHTML = mockMessages.map(m => `
+            <div class="message-row ${m.unread ? 'message-unread' : ''}" onclick="alert('Opening clinical oversight for ${m.user}')">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <strong style="font-size:15px;">${m.user}</strong>
+                    <span style="font-size:12px; color:var(--text-muted);">${m.time}</span>
+                </div>
+                <p style="margin:0; font-size:13px; color:var(--text-muted);">${m.last}</p>
+            </div>
+        `).join('');
+    }
+
+    // Init
+    loadStats();
+    loadAppointments();
+    setInterval(loadStats, 30000);
+</script>
+
+
+
+
+
+
+
+</body>
+</html>

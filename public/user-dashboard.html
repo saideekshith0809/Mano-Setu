@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        const token = localStorage.getItem('x-session-token');
+        if (!token) window.location.href = '/auth.html';
+        const role = localStorage.getItem('manosetu-role') || 'user';
+        if (role === 'admin') window.location.href = '/admin-dashboard.html';
+        else if (role === 'volunteer') window.location.href = '/volunteer-dashboard.html';
+        else if (role === 'doctor') window.location.href = '/doctor-dashboard.html';
+    </script>
+    <meta charset="UTF-8">
+    <title>ManoSetu - My Space</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #fdfaf6;
+            --primary: #FFB347;
+            --secondary: #A0D2EB;
+            --text-dark: #2F3E46;
+            --card-shadow: 0 8px 32px rgba(160, 210, 235, 0.2);
+        }
+        
+        body { margin: 0; font-family: 'Nunito', sans-serif; background: var(--bg-color); color: var(--text-dark); padding-top: 80px; }
+        
+        nav { position: fixed; top: 0; left: 0; right: 0; height: 75px; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); display: flex; align-items: center; padding: 0 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); z-index: 1000; border-bottom: 2px solid var(--secondary); }
+        .logo { font-weight: 900; font-size: 28px; color: var(--primary); text-decoration: none; margin-right: auto; text-shadow: 1px 1px 0 rgba(0,0,0,0.05); }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #5a6b72; font-weight: 800; font-size: 16px; transition: 0.2s; padding: 8px 16px; border-radius: 20px; }
+        .nav-links a:hover { background: var(--secondary); color: white; transform: scale(1.05); }
+        .btn-sos { background: #FF6B6B; color: white; padding: 10px 24px; border-radius: 24px; font-weight: 900; font-size: 16px; border: none; cursor: pointer; margin-left: 10px; box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3); transition: 0.2s; }
+        .btn-sos:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4); }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        
+        .header-section { text-align: center; margin-bottom: 40px; display: flex; flex-direction: column; align-items: center; }
+        .header-section h1 { font-size: 42px; font-weight: 900; color: var(--text-dark); margin: 0; }
+        .header-section span { font-size: 48px; display: inline-block; animation: wave 2.5s infinite; transform-origin: 70% 70%; margin-bottom: 10px; }
+        @keyframes wave { 0% { transform: rotate( 0.0deg) } 10% { transform: rotate(14.0deg) } 20% { transform: rotate(-8.0deg) } 30% { transform: rotate(14.0deg) } 40% { transform: rotate(-4.0deg) } 50% { transform: rotate( 10.0deg) } 60% { transform: rotate( 0.0deg) } 100% { transform: rotate( 0.0deg) } }
+
+        .card { background: white; border-radius: 36px; padding: 40px; box-shadow: var(--card-shadow); text-align: center; margin-bottom: 30px; position: relative; overflow: hidden; border: 4px solid white; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: var(--secondary); }
+
+        .mood-title { font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 30px; color: #5a6b72; }
+        .mood-row { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+        .mood-btn { background: none; border: none; cursor: pointer; font-size: 56px; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .mood-btn:hover { transform: scale(1.3); }
+        .mood-btn.selected { transform: scale(1.4); }
+        .mood-label { display: block; font-size: 14px; font-weight: 800; color: #8F9DA6; margin-top: 8px; font-family: 'Nunito', sans-serif; }
+        
+        .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        
+        .action-card { background: rgba(255,255,255,0.7); border-radius: 30px; padding: 30px; text-align: center; border: 3px solid #E5EEF4; cursor: pointer; transition: 0.3s; text-decoration: none; color: inherit; display: block; }
+        .action-card.book-session { background: #E8F5E9; border-color: #A5D6A7; }
+        .action-card.safe-board { background: #FFF3E0; border-color: #FFCC80; }
+        .action-card:hover { transform: translateY(-8px); box-shadow: 0 15px 25px rgba(0,0,0,0.06); }
+        
+        .action-icon { font-size: 64px; margin-bottom: 15px; }
+        .action-title { font-size: 24px; font-weight: 900; margin: 0 0 10px; }
+        .action-desc { font-size: 16px; font-weight: 600; color: #6a7c85; margin: 0; }
+
+        /* ========== MAP SECTION ========== */
+        .map-section { margin-bottom: 30px; }
+        .map-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .map-section-header h2 { margin: 0; font-size: 26px; font-weight: 900; color: var(--text-dark); }
+        .map-section-header p { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: #8F9DA6; }
+        .locate-btn { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; padding: 10px 20px; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s; font-family: inherit; }
+        .locate-btn:hover { transform: scale(1.05); box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); }
+
+        .map-wrapper { border-radius: 24px; overflow: hidden; border: 4px solid white; box-shadow: var(--card-shadow); position: relative; }
+        #doctorMap { height: 400px; width: 100%; z-index: 1; }
+
+        /* Doctor cards below map */
+        .doc-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
+        .doc-card { background: white; border-radius: 20px; padding: 20px; border: 3px solid #E5EEF4; transition: 0.3s; cursor: pointer; display: flex; gap: 16px; align-items: center; }
+        .doc-card:hover { transform: translateY(-4px); border-color: var(--secondary); box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+        .doc-card.highlighted { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+        .doc-avatar { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+        .doc-info h4 { margin: 0 0 4px; font-size: 16px; font-weight: 800; }
+        .doc-info p { margin: 0; font-size: 13px; color: #8F9DA6; font-weight: 600; }
+        .doc-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+        .doc-rating { background: #FFF8E1; color: #F57F17; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+        .doc-dist { font-size: 12px; color: #8F9DA6; font-weight: 700; }
+        .doc-book-btn { background: linear-gradient(135deg, #10b981, #34d399); color: white; border: none; padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer; margin-left: auto; font-family: inherit; transition: 0.2s; }
+        .doc-book-btn:hover { transform: scale(1.05); }
+
+        /* Leaflet popup override */
+        .leaflet-popup-content-wrapper { border-radius: 16px !important; font-family: 'Nunito', sans-serif; }
+        .leaflet-popup-content { margin: 12px 16px !important; }
+        .popup-doc { text-align: center; }
+        .popup-doc h3 { margin: 0 0 4px; font-size: 16px; font-weight: 800; }
+        .popup-doc p { margin: 0 0 8px; font-size: 13px; color: #64748b; }
+        .popup-doc .popup-book { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; padding: 8px 20px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; }
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(59,130,246,0); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+
+        /* ========== GAMIFICATION WIDGET ========== */
+        .gamify-widget { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        .gamify-card { background: white; border-radius: 24px; padding: 24px; box-shadow: var(--card-shadow); flex: 1; border: 3px solid #E5EEF4; min-width: 250px; }
+        .streak-area { display: flex; align-items: center; gap: 16px; }
+        .streak-fire { font-size: 42px; filter: drop-shadow(0 4px 6px rgba(255, 179, 71, 0.4)); animation: pulse 2s infinite; }
+        .streak-stats h3 { margin: 0; font-size: 28px; font-weight: 900; color: #FFB347; }
+        .streak-stats p { margin: 0; font-size: 14px; color: #8F9DA6; font-weight: 700; }
+        
+        .level-area { display: flex; flex-direction: column; gap: 8px; justify-content: center; height: 100%; }
+        .level-header { display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; color: var(--text-dark); }
+        .progress-bar-bg { background: #E5EEF4; height: 12px; border-radius: 10px; overflow: hidden; width: 100%; }
+        .progress-bar-fill { background: linear-gradient(90deg, #A0D2EB, #7c3aed); height: 100%; width: 0%; transition: width 1s ease-out; border-radius: 10px; }
+        
+        .badges-area { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .badge-icon { background: #FFF3E0; border: 2px solid #FFCC80; padding: 6px 12px; border-radius: 14px; font-size: 12px; font-weight: 800; color: #F57F17; }
+        
+        .virtual-companion { font-size: 48px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .virtual-companion:hover { transform: scale(1.1) rotate(5deg); }
+
+        /* NGO COMMUNITIES */
+        .community-section { margin-top: 40px; text-align: left; }
+        .community-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+        .comm-card { 
+            background: white; border-radius: 24px; padding: 24px; border: 3px solid #E5EEF4; 
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+        }
+        .comm-card:hover { transform: translateY(-8px); border-color: var(--secondary); box-shadow: 0 12px 24px rgba(0,0,0,0.05); }
+        .comm-icon { font-size: 40px; width: 80px; height: 80px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: #f8fafc; }
+        .comm-info h4 { margin: 0; font-size: 17px; font-weight: 800; }
+        .comm-info p { margin: 4px 0 0; font-size: 12px; color: #8F9DA6; font-weight: 600; line-height: 1.4; }
+        .comm-join-btn { 
+            width: 100%; margin-top: auto; padding: 10px; border-radius: 14px; border: none; 
+            background: #f1f5f9; color: #64748b; font-weight: 800; cursor: pointer; transition: 0.2s; 
+        }
+        .comm-join-btn:hover:not(:disabled) { background: var(--secondary); color: white; }
+        .comm-join-btn.joined { background: #E8F5E9; color: #2E7D32; cursor: default; }
+        .comm-join-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .my-circles-row { display: flex; gap: 16px; overflow-x: auto; padding: 10px 0 20px; scrollbar-width: none; }
+        .my-circles-row::-webkit-scrollbar { display: none; }
+        .circle-chip { 
+            flex-shrink: 0; background: white; border: 2px solid var(--secondary); border-radius: 50px; 
+            padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px;
+            box-shadow: 0 4px 10px rgba(160, 210, 235, 0.2);
+        }
+    </style>
+<script src="/i18n.js"></script>
+</head>
+<body>
+
+<nav>
+    <a href="/user-dashboard.html" class="logo">ManoSetu</a>
+    <div class="nav-links">
+        <a href="/user-dashboard.html" style="background: var(--secondary); color: white;">My Space</a>
+        <a href="/wellness.html" data-t="nav_wellness">Wellness</a>
+        <a href="/community.html" data-t="nav_community">Safe Board</a>
+        <a href="/booking.html" data-t="nav_booking">Book Session</a>
+        <a href="#" onclick="logout()" data-t="nav_logout">Logout</a>
+    </div>
+    <button class="btn-sos" onclick="triggerSOS()">🚑 Help Me</button>
+
+    <!-- Premium Language Dropdown -->
+    <div class="lang-dropdown">
+        <button class="lang-drop-btn" onclick="window.toggleLangDropdown(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="currentLangLabel">English</span>
+        </button>
+        <div class="lang-menu" id="langDropdownMenu">
+            <div class="lang-item lang-select-item" data-lang="en" onclick="window.setLang('en')">English</div>
+            <div class="lang-item lang-select-item" data-lang="hi" onclick="window.setLang('hi')">Hindi</div>
+            <div class="lang-item lang-select-item" data-lang="te" onclick="window.setLang('te')">Telugu</div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="header-section">
+        <span>👋</span>
+        <h1 id="greeting" data-t="user_greeting">Hi Friend!</h1>
+        <script>
+            setTimeout(() => {
+                try {
+                const userRaw = localStorage.getItem('manosetu-user');
+                if (userRaw) {
+                    const user = JSON.parse(userRaw);
+                    const name = user.fullName || user.username || 'Friend';
+                    document.getElementById('greeting').innerText = `Hi ${name}!`;
+                }
+                } catch(e) { console.error('Greeting error', e); }
+            }, 100);
+        </script>
+    </div>
+
+    <!-- Gamification Widget -->
+    <div class="gamify-widget" id="gamifyWidget" style="display: none;">
+        <div class="gamify-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="streak-area">
+                    <div class="streak-fire" id="gamifyIcon">🔥</div>
+                    <div class="streak-stats">
+                        <h3 id="gamifyStreak">0 Days</h3>
+                        <p>Current Streak</p>
+                    </div>
+                </div>
+                <div class="virtual-companion" id="companionAvatar" title="Your Wellness Buddy!">🌱</div>
+            </div>
+        </div>
+        <div class="gamify-card">
+            <div class="level-area">
+                <div class="level-header">
+                    <span id="gamifyLevel">Level 1 - Beginner</span>
+                    <span id="gamifyPoints">0 pts</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="gamifyProgress"></div>
+                </div>
+                <div class="badges-area" id="gamifyBadges"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="moodCard">
+        <h2 class="mood-title" data-t="user_mood_q">How are you feeling right now?</h2>
+        <div class="mood-row">
+            <button class="mood-btn" onclick="selectMood(this, 'Great')">
+                🤩
+                <span class="mood-label" data-t="user_mood_great">Great</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this, 'Good')">
+                😊
+                <span class="mood-label" data-t="user_mood_good">Good</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this, 'Okay')">
+                😐
+                <span class="mood-label" data-t="user_mood_okay">Okay</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this, 'Sad')">
+                😔
+                <span class="mood-label" data-t="user_mood_sad">Sad</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this, 'Angry')">
+                😠
+                <span class="mood-label" data-t="user_mood_angry">Angry</span>
+            </button>
+        </div>
+        <p id="moodMessage" style="color: #4CAF50; font-weight: 800; font-size: 18px; display: none; margin-top: 25px; animation: popIn 0.3s;"></p>
+    </div>
+
+    <!-- ========== NEARBY DOCTORS MAP ========== -->
+    <div class="map-section">
+        <div class="map-section-header">
+            <div>
+                <h2 data-t="map_title">📍 Find Nearby Experts</h2>
+                <p data-t="map_subtitle">Tap a marker to view doctor details & book a session</p>
+            </div>
+            <button class="locate-btn" onclick="locateMe()" data-t="map_locate">📡 Locate Me</button>
+        </div>
+        <div class="map-wrapper">
+            <div id="doctorMap"></div>
+        </div>
+        <div class="doc-cards" id="docCardList"></div>
+    </div>
+
+    <!-- NGO COMMUNITIES SECTION -->
+    <div class="community-section">
+        <div id="myCommunitiesSection" style="display: none; margin-bottom: 30px;">
+            <h2 style="font-size: 26px; font-weight: 900; margin: 0 0 16px;">🏠 My Support Circles</h2>
+            <div class="my-circles-row" id="myCirclesRow"></div>
+        </div>
+
+        <div class="glass-card" style="background:rgba(255,255,255,0.7); border-radius:30px; padding:30px; border:3px solid #E5EEF4;">
+            <h2 style="font-size: 26px; font-weight: 900; margin: 0;">🌐 Discover NGO Communities</h2>
+            <p style="color: #8F9DA6; font-weight:600; margin: 6px 0 24px;">Join up to 10 official support circles for personalized care.</p>
+            <div class="community-grid" id="communityDiscoveryGrid">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="actions-grid">
+        <a href="/booking.html" class="action-card book-session">
+            <div class="action-icon">🗣️</div>
+            <h3 class="action-title" data-t="user_talk">Talk to Someone</h3>
+            <p class="action-desc" data-t="user_feat_talk_desc">Book a friendly session</p>
+        </a>
+        
+        <a href="/community.html" class="action-card safe-board">
+            <div class="action-icon">🎨</div>
+            <h3 class="action-title" data-t="user_feat_board">Safe Board</h3>
+            <p class="action-desc" data-t="user_feat_board_desc">Anonymous thoughts & support</p>
+        </a>
+        
+        <a href="/wellness.html" class="action-card" style="background:#FFF0F5; border-color:#F8BBD0;">
+            <div class="action-icon">🧘‍♀️</div>
+            <h3 class="action-title" data-t="user_relax">Relax</h3>
+            <p class="action-desc" data-t="user_feat_relax_desc">Listen to chill sounds</p>
+        </a>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // ========== AUTH ==========
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/auth.html';
+    }
+
+    // ========== GREETING ==========
+    const userName = localStorage.getItem('manosetu-username');
+    if (userName) {
+        document.getElementById('greeting').textContent = 'Hi ' + userName + '!';
+    }
+
+    // ========== MOOD TRACKER & GAMIFICATION ==========
+    async function selectMood(btn, mood) {
+        document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const msg = document.getElementById('moodMessage');
+        msg.style.display = 'block';
+        
+        try {
+            const res = await fetch('/api/mood', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-session-token': token },
+                body: JSON.stringify({ mood })
+            });
+            const data = await res.json();
+            
+            if (data.success && data.gamification) {
+                updateGamificationUI(data.gamification);
+            }
+        } catch(e) { console.error('Mood Log Error', e) }
+
+        const responses = {
+            'Great': "Awesome! Keep shining bright! ✨",
+            'Good': "Glad to hear you're doing well! 🌟",
+            'Okay': "Take a deep breath and have a chill day. 🍃",
+            'Sad': "It's totally okay to feel sad. We're here for you. 💙",
+            'Angry': "Take a slow breath... let it out. You can express it on the Safe Board. 🎈"
+        };
+        msg.textContent = responses[mood] + " (+10 Points!)";
+        msg.style.color = (mood === 'Sad' || mood === 'Angry') ? '#0277BD' : '#4CAF50';
+    }
+
+    // Track state to trigger animations
+    let lastLevel = null;
+    let lastBadgesCount = null;
+
+    function updateGamificationUI(g) {
+        document.getElementById('gamifyWidget').style.display = 'flex';
+        document.getElementById('gamifyStreak').textContent = g.streak + ' Days';
+        
+        document.getElementById('gamifyPoints').textContent = g.points + ' pts';
+        const levelNames = ['Beginner', 'Aware', 'Explorer', 'Mind Master'];
+        document.getElementById('gamifyLevel').textContent = 'Level ' + g.level + ' - ' + (levelNames[g.level-1] || 'Guru');
+        
+        // Progress bar logic (100 pts per level)
+        const progressPct = (g.points % 100) + '%';
+        document.getElementById('gamifyProgress').style.width = progressPct;
+
+        // Companion logic
+        const comp = document.getElementById('companionAvatar');
+        if (g.streak === 0) comp.textContent = '🥀';
+        else if (g.streak <= 2) comp.textContent = '🌱';
+        else if (g.streak <= 5) comp.textContent = '🪴';
+        else comp.textContent = '🌳';
+
+        // Badges
+        const bc = document.getElementById('gamifyBadges');
+        bc.innerHTML = '';
+        g.badges.forEach(b => {
+             const span = document.createElement('span');
+             span.className = 'badge-icon';
+             span.textContent = '🏅 ' + b;
+             bc.appendChild(span);
+        });
+
+        // Trigger Confetti!
+        if (lastLevel !== null && g.level > lastLevel) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        } else if (lastBadgesCount !== null && g.badges.length > lastBadgesCount) {
+            confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
+        }
+        
+        lastLevel = g.level;
+        lastBadgesCount = g.badges.length;
+    }
+
+    // Load initial UI data from auth endpoint
+    async function loadUserGamification() {
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'x-session-token': token }
+            });
+            const data = await res.json();
+            if (data.success && data.user && data.user.points !== undefined) {
+                updateGamificationUI(data.user);
+            }
+        } catch(e) { console.error('Error fetching user', e) }
+    }
+    loadUserGamification();
+
+    // ========== NEARBY DOCTORS MAP ==========
+    const defaultCenter = [17.385, 78.4867]; // Hyderabad
+    const map = L.map('doctorMap').setView(defaultCenter, 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(map);
+
+    // Mock nearby doctors with realistic locations around Hyderabad
+    const nearbyDoctors = [
+        { name: 'Dr. Priya Sharma', spec: 'Child Psychology', rating: 4.9, dist: '1.2 km', lat: 17.390, lng: 78.480, color: '#E8F5E9', emoji: '👩‍⚕️' },
+        { name: 'Dr. Amit Patel', spec: 'Teen Counseling', rating: 4.7, dist: '2.5 km', lat: 17.375, lng: 78.500, color: '#E3F2FD', emoji: '👨‍⚕️' },
+        { name: 'Dr. Neha Gupta', spec: 'Stress & Anxiety', rating: 4.8, dist: '3.1 km', lat: 17.395, lng: 78.470, color: '#FFF3E0', emoji: '👩‍⚕️' },
+        { name: 'Dr. Rajesh Kumar', spec: 'Family Therapy', rating: 4.6, dist: '0.8 km', lat: 17.383, lng: 78.492, color: '#FCE4EC', emoji: '👨‍⚕️' },
+        { name: 'Dr. Meera Reddy', spec: 'Academic Anxiety', rating: 4.9, dist: '1.9 km', lat: 17.400, lng: 78.495, color: '#F3E5F5', emoji: '👩‍⚕️' },
+        { name: 'Dr. Siddharth Rao', spec: 'CBT Specialist', rating: 4.5, dist: '4.3 km', lat: 17.370, lng: 78.460, color: '#E0F7FA', emoji: '👨‍⚕️' }
+    ];
+
+    const docIcon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background: linear-gradient(135deg,#7c3aed,#a855f7); width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; box-shadow: 0 4px 12px rgba(124,58,237,0.4); border: 3px solid white;">🩺</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -20]
+    });
+
+    const markers = [];
+
+    nearbyDoctors.forEach((doc, i) => {
+        const marker = L.marker([doc.lat, doc.lng], { icon: docIcon }).addTo(map);
+        marker.bindPopup(
+            '<div class="popup-doc">' +
+            '<h3>' + doc.emoji + ' ' + doc.name + '</h3>' +
+            '<p>' + doc.spec + ' · ⭐ ' + doc.rating + ' · ' + doc.dist + '</p>' +
+            '<div style="display:flex;gap:8px;justify-content:center">' +
+            '<button class="popup-book" onclick="openDirections(' + doc.lat + ',' + doc.lng + ')">📍 Directions</button>' +
+            '<button class="popup-book" style="background:linear-gradient(135deg,#10b981,#34d399)" onclick="window.location.href=\'/booking.html\'">Book Session</button>' +
+            '</div>' +
+            '</div>'
+        );
+        marker.on('click', function() { highlightCard(i); });
+        markers.push(marker);
+    });
+
+    // Render doctor cards below map
+    const cardList = document.getElementById('docCardList');
+    nearbyDoctors.forEach((doc, i) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'doc-card';
+        cardDiv.id = 'doc-card-' + i;
+        cardDiv.onclick = function() { flyToDoc(i); };
+        cardDiv.innerHTML =
+            '<div class="doc-avatar" style="background: ' + doc.color + '">' + doc.emoji + '</div>' +
+            '<div class="doc-info">' +
+                '<h4>' + doc.name + '</h4>' +
+                '<p>' + doc.spec + '</p>' +
+                '<div class="doc-meta">' +
+                    '<span class="doc-rating">⭐ ' + doc.rating + '</span>' +
+                    '<span class="doc-dist">' + doc.dist + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;margin-left:auto">' +
+            '<button class="doc-book-btn" onclick="event.stopPropagation(); openDirections(' + doc.lat + ',' + doc.lng + ')" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">📍 Map</button>' +
+            '<button class="doc-book-btn" onclick="event.stopPropagation(); window.location.href=\'/booking.html\'">Book</button>' +
+            '</div>';
+        cardList.appendChild(cardDiv);
+    });
+
+    function flyToDoc(i) {
+        const doc = nearbyDoctors[i];
+        map.flyTo([doc.lat, doc.lng], 15, { duration: 0.8 });
+        markers[i].openPopup();
+        highlightCard(i);
+    }
+
+    function highlightCard(i) {
+        document.querySelectorAll('.doc-card').forEach(c => c.classList.remove('highlighted'));
+        const card = document.getElementById('doc-card-' + i);
+        if (card) {
+            card.classList.add('highlighted');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function locateMe() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const userLat = pos.coords.latitude;
+                const userLng = pos.coords.longitude;
+                map.flyTo([userLat, userLng], 14, { duration: 1 });
+
+                const userIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background: linear-gradient(135deg,#3b82f6,#60a5fa); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:20px; box-shadow: 0 0 0 8px rgba(59,130,246,0.2); border: 3px solid white; animation: pulse 2s infinite;">📍</div>',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+                L.marker([userLat, userLng], { icon: userIcon }).addTo(map).bindPopup('<b>You are here!</b>').openPopup();
+            }, function() {
+                alert('Location access denied. Showing default area.');
+            });
+        }
+    }
+
+    // ========== GOOGLE MAPS DIRECTIONS ==========
+    function openDirections(destLat, destLng) {
+        // Opens Google Maps with directions from user's current location to the doctor
+        const url = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng + '&travelmode=driving';
+        window.open(url, '_blank');
+    }
+
+    // Fix Leaflet tile rendering after layout
+    setTimeout(function() { map.invalidateSize(); }, 300);
+
+    // ========== NGO COMMUNITIES LOGIC ==========
+    let myCommIds = [];
+
+    async function loadUserCommunities() {
+        try {
+            const res = await fetch('/api/community/me', {
+                headers: { 'x-session-token': token }
+            });
+            const data = await res.json();
+            if (data.success) {
+                myCommIds = data.communities.map(c => c._id);
+                renderMyCircles(data.communities);
+                loadAllCommunities();
+            }
+        } catch(e) { console.error('My circles error', e); }
+    }
+
+    function renderMyCircles(comms) {
+        const row = document.getElementById('myCirclesRow');
+        const section = document.getElementById('myCommunitiesSection');
+        if (comms.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        row.innerHTML = comms.map(c => `
+            <div class="circle-chip">
+                <span>${c.icon}</span>
+                <span>${c.name}</span>
+            </div>
+        `).join('');
+    }
+
+    async function loadAllCommunities() {
+        try {
+            const res = await fetch('/api/community/spaces');
+            const data = await res.json();
+            if (data.success) {
+                renderDiscovery(data.communities);
+            }
+        } catch(e) { console.error('Spaces error', e); }
+    }
+
+    function renderDiscovery(comms) {
+        const grid = document.getElementById('communityDiscoveryGrid');
+        grid.innerHTML = comms.map(c => {
+            const isJoined = myCommIds.includes(c._id);
+            const btnText = isJoined ? '✅ Joined' : (myCommIds.length >= 10 ? 'Limit Reached' : 'Join Circle');
+            const btnClass = isJoined ? 'comm-join-btn joined' : 'comm-join-btn';
+            const disable = isJoined || myCommIds.length >= 10;
+            
+            return `
+                <div class="comm-card">
+                    <div class="comm-icon" style="color:${c.color}">${c.icon}</div>
+                    <div class="comm-info">
+                        <h4>${c.name}</h4>
+                        <p>${c.description}</p>
+                    </div>
+                    <button class="${btnClass}" ${disable ? 'disabled' : ''} onclick="joinCircle('${c._id}')">${btnText}</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function joinCircle(id) {
+        try {
+            const res = await fetch(`/api/community/join/${id}`, {
+                method: 'POST',
+                headers: { 'x-session-token': token }
+            });
+            const data = await res.json();
+            if (data.success) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                loadUserCommunities(); // Refresh
+                if (window.loadUserGamification) loadUserGamification(); // Refresh points
+            } else {
+                alert(data.error || 'Failed to join');
+            }
+        } catch(e) { console.error('Join error', e); }
+    }
+
+    loadUserCommunities();
+</script>
+
+</body>
+</html>
