@@ -1,57 +1,57 @@
-# 🧠 ManoSetu  
-### A Structured Mental Health Support Platform
+# 🧠 ManoSetu
+
+**A Structured Mental Health Support Platform for Simple, Accessible Care**
+
+ManoSetu is a clean and thoughtfully designed platform that simplifies how individuals seek mental health support. It focuses on clarity, usability, and structured interaction between users, doctors, and administrators through a role-based system.
 
 ---
 
-## 🚀 Overview  
-**ManoSetu** is a clean and structured mental health support system designed to simplify how users seek help and interact with professionals.
+## ✨ Key Features
 
-The focus is on:
-- Simplicity  
-- Clear navigation  
-- Role-based experience  
-- Practical usability  
+- **Simplified Mood Tracker**  
+  Emoji-based mood selection with exactly 5 clear emotional states for quick and easy input.
 
----
+- **Clean & Meaningful UI**  
+  Removed unnecessary elements like “Your Data” to ensure a more user-friendly and emotionally comfortable experience.
 
-## ✨ Core Improvements
+- **Structured Page Navigation**  
+  Features are separated into dedicated pages instead of a single cluttered interface.
 
-### 🎭 Minimal & Intuitive Mood Tracker
-- Clean **emoji-based mood selection**
-- Exactly **5 mood states**
-- Designed for **quick, distraction-free input**
-- Focus on **clarity over complexity**
+- **Session Booking System**  
+  Users can easily book sessions with all required details in a structured format.
+
+- **Role-Based Dashboards**  
+  Separate dashboards for Admin, User, and Doctor for better functionality and clarity.
 
 ---
 
-### 📝 Meaningful UI Experience
-- Removed unnecessary text like **"Your Data"**
-- Replaced with **user-friendly and relatable messaging**
-- Keeps interface **clean and emotionally comfortable**
+## 🧩 System Design
+
+ManoSetu is built around a **multi-role architecture**, ensuring each user interacts with the platform based on their responsibilities.
+
+### 👥 User Roles
+
+#### 🔐 Admin
+- Monitors overall system activity  
+- Has access to all users and sessions  
+- Uses a dedicated dashboard for management  
+
+#### 🙋 User
+- Books sessions for mental health support  
+- Interacts with the system in a simple and structured way  
+
+#### 🧑‍⚕️ Doctor
+- Views assigned sessions  
+- Tracks number of bookings  
+- Manages session flow  
 
 ---
 
-### 🧭 Structured Navigation
-- Eliminated clutter by **splitting features into separate pages**
-- No overloaded screens  
-- Each feature has its **own dedicated space**
+## 📅 Booking System
 
-#### Organized Pages:
-- Dashboard  
-- Mood Tracker  
-- Booking  
-- (Other features separated clearly)
+A simple and structured booking flow designed for real-world usability.
 
----
-
-### 📅 Smart Session Booking System
-A **simple and effective booking flow** designed for real use.
-
-#### Includes:
-- Clickable booking option  
-- Structured input collection  
-
-#### Required Details:
+### Required Inputs:
 - Name  
 - Age  
 - Issue (e.g., stress)  
@@ -61,66 +61,46 @@ A **simple and effective booking flow** designed for real use.
 
 ---
 
-## 👥 Role-Based System
+## 🎭 Mood Tracking
 
-ManoSetu is designed with **clear role separation** for better functionality and scalability.
-
----
-
-### 🔐 Admin
-- Monitors overall system activity  
-- Has access to all users and sessions  
-- Uses a **dedicated dashboard**  
+- Emoji-based interaction  
+- Exactly 5 mood options  
+- Quick and intuitive selection  
+- Focused on simplicity and clarity  
 
 ---
 
-### 🙋 User
-- Books sessions for mental health support  
-- Interacts with the system in a simple way  
+## 🧭 Navigation Structure
+
+To improve usability, features are separated into different pages:
+
+- Dashboard  
+- Mood Tracker  
+- Session Booking  
+- (Other features structured across pages)  
 
 ---
 
-### 🧑‍⚕️ Doctor
-- Views assigned sessions  
-- Tracks number of bookings  
-- Manages session flow  
+## ⚙️ Design Philosophy
 
----
+ManoSetu is built on the idea that mental health platforms should be:
 
-## ⚠️ System Design Principle
-
-> Each role operates on a **different dashboard**  
-
-This ensures:
-- Better usability  
-- Clear responsibilities  
-- Scalable architecture  
-
----
-
-## 🎯 Vision
-
-To build a platform that is:
 - **Simple to use**  
-- **Clearly structured**  
-- **Focused on real-world usability**  
-
-ManoSetu removes confusion and focuses on what truly matters —  
-👉 *Helping users access support easily.*
+- **Visually clean**  
+- **Free from unnecessary complexity**  
+- **Focused on user comfort**  
 
 ---
 
-## 💡 Key Highlights
+## 🚀 Getting Started
 
-- Clean UI approach  
-- Minimal interaction design  
-- Role-based architecture  
-- Practical booking system  
-- Organized feature flow  
+### Prerequisites
+- Node.js (v16+)
+- npm or yarn
 
----
+### Installation
 
-## 🏁 Final Thought
-
-ManoSetu is not just about features —  
-it is about **making mental health support accessible, structured, and easy to use.**
+1. Clone the Repository
+```bash
+git clone https://github.com/saideekshith0809/ManoSetu.git
+cd ManoSetu
